@@ -1,0 +1,9 @@
+__pycache__/
+bin/
+data/
+dumps/
+simple-examples.tgz
+simple-examples/
+logs/
+logs_rnn/
+bin_rnn/
