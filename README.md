@@ -107,3 +107,6 @@ The following arguments are available:
 `-tb`, `--tensorboard_logging` If provided, training progress is monitored with tensorboard.  
 `-log`, `--logdir` Directory of log files for tensorboard.  
 `-bin`,`--save_model_path` Directory where to store model checkpoints.
+
+## Tensorboard Tutorial
+[_Tutorial_](https://pytorch.org/tutorials/intermediate/tensorboard_tutorial.html)
