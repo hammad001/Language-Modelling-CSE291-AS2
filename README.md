@@ -65,7 +65,7 @@ The following arguments are available:
 `-lr`, `--learning_rate`
 
 `-eb`, `--embedding_size`  
-`-rnn`, `--rnn_type` Either 'rnn' or 'gru'.  
+`-rnn`, `--rnn_type` Either 'rnn' or 'gru' or 'lstm'.  
 `-hs`, `--hidden_size`  
 `-nl`, `--num_layers`  
 `-bi`, `--bidirectional`  
@@ -93,7 +93,7 @@ The following arguments are available:
 `-lr`, `--learning_rate`
 
 `-eb`, `--embedding_size`  
-`-rnn`, `--rnn_type` Either 'rnn' or 'gru'.  
+`-rnn`, `--rnn_type` Either 'rnn' or 'gru' or 'lstm'.  
 `-hs`, `--hidden_size`  
 `-nl`, `--num_layers`  
 `-bi`, `--bidirectional`  
