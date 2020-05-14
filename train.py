@@ -72,7 +72,7 @@ def main(args):
         if anneal_function == 'identity':
             return 1
 
-    NLL = torch.nn.NLLLoss(size_average=False, ignore_index=datasets['train'].pad_idx)
+    ReconLoss = torch.nn.NLLLoss(size_average=False, ignore_index=datasets['train'].pad_idx)
     def loss_fn(logp, target, length, mean, logv, anneal_function, step):
 
         # cut-off unnecessary padding from target, and flatten
@@ -80,13 +80,13 @@ def main(args):
         logp = logp.view(-1, logp.size(2))
         
         # Negative Log Likelihood
-        NLL_loss = NLL(logp, target)
+        recon_loss = ReconLoss(logp, target)
 
         # KL Divergence
         KL_loss = -0.5 * torch.sum(1 + logv - mean.pow(2) - logv.exp())
         KL_weight = kl_anneal_function(anneal_function, step)
 
-        return NLL_loss, KL_loss, KL_weight
+        return recon_loss, KL_loss, KL_weight
 
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
@@ -124,10 +124,14 @@ def main(args):
                 logp, mean, logv, z = model(batch['input'], batch['length'])
 
                 # loss calculation
-                NLL_loss, KL_loss, KL_weight = loss_fn(logp, batch['target'],
+                recon_loss, KL_loss, KL_weight = loss_fn(logp, batch['target'],
                     batch['length'], mean, logv, args.anneal_function, step)
 
-                loss = (NLL_loss + KL_weight * KL_loss)/batch_size
+                if split == 'train':
+                    loss = (recon_loss + KL_weight * KL_loss)/batch_size
+                else:
+                    # report complete elbo when validation
+                    loss = (recon_loss + KL_loss)/batch_size
 
                 # backward + optimization
                 if split == 'train':
@@ -138,17 +142,17 @@ def main(args):
 
 
                 # bookkeepeing
-                tracker['ELBO'] = torch.cat((tracker['ELBO'], loss.data))
+                tracker['negELBO'] = torch.cat((tracker['negELBO'], loss.data))
 
                 if args.tensorboard_logging:
-                    writer.add_scalar("%s/ELBO"%split.upper(), loss.data[0], epoch*len(data_loader) + iteration)
-                    writer.add_scalar("%s/NLL_Loss"%split.upper(), NLL_loss.data[0]/batch_size, epoch*len(data_loader) + iteration)
+                    writer.add_scalar("%s/Negative_ELBO"%split.upper(), loss.data[0], epoch*len(data_loader) + iteration)
+                    writer.add_scalar("%s/Recon_Loss"%split.upper(), recon_loss.data[0]/batch_size, epoch*len(data_loader) + iteration)
                     writer.add_scalar("%s/KL_Loss"%split.upper(), KL_loss.data[0]/batch_size, epoch*len(data_loader) + iteration)
                     writer.add_scalar("%s/KL_Weight"%split.upper(), KL_weight, epoch*len(data_loader) + iteration)
 
                 if iteration % args.print_every == 0 or iteration+1 == len(data_loader):
-                    logger.info("%s Batch %04d/%i, Loss %9.4f, NLL-Loss %9.4f, KL-Loss %9.4f, KL-Weight %6.3f"
-                        %(split.upper(), iteration, len(data_loader)-1, loss.data[0], NLL_loss.data[0]/batch_size, KL_loss.data[0]/batch_size, KL_weight))
+                    logger.info("%s Batch %04d/%i, Loss %9.4f, Recon-Loss %9.4f, KL-Loss %9.4f, KL-Weight %6.3f"
+                        %(split.upper(), iteration, len(data_loader)-1, loss.data[0], recon_loss.data[0]/batch_size, KL_loss.data[0]/batch_size, KL_weight))
 
                 if split == 'valid':
                     if 'target_sents' not in tracker:
@@ -156,10 +160,10 @@ def main(args):
                     tracker['target_sents'] += idx2word(batch['target'].data, i2w=datasets['train'].get_i2w(), pad_idx=datasets['train'].pad_idx)
                     tracker['z'] = torch.cat((tracker['z'], z.data), dim=0)
 
-            logger.info("%s Epoch %02d/%i, Mean ELBO %9.4f"%(split.upper(), epoch, args.epochs, torch.mean(tracker['ELBO'])))
+            logger.info("%s Epoch %02d/%i, Mean Negative ELBO %9.4f"%(split.upper(), epoch, args.epochs, torch.mean(tracker['negELBO'])))
 
             if args.tensorboard_logging:
-                writer.add_scalar("%s-Epoch/ELBO"%split.upper(), torch.mean(tracker['ELBO']), epoch)
+                writer.add_scalar("%s-Epoch/NegELBO"%split.upper(), torch.mean(tracker['negELBO']), epoch)
 
             # save a dump of all sentences and the encoded latent space
             if split == 'valid':
