@@ -9,13 +9,13 @@ Materials borrowed from https://github.com/timbmg/: PyTorch re-implementation of
 ```
 conda create -n cse291_as2 python=3.6
 ```
-3. Install requirements.
-```
-pip install -r requirements.txt
-```
-4. Activate the environment.
+3. Activate the environment.
 ```
 conda activate cse291_as2
+```
+4. Install requirements.
+```
+pip install -r requirements.txt
 ```
 
 ## Download dataset
